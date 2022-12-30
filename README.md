@@ -20,6 +20,8 @@ on your own infrastructure with specific GitHub tokens.
 
 ## How it works
 
+The application runs a simple web server which relays the requested GitHub username from the URL as a parameter into the GitHub API.
+
 This utilises the [GraphQL GitHub API](https://docs.github.com/en/graphql) to fetch the relevant data about a user's merged pull requests, filtering by those which are
 not their own projects, i.e. a repository under their GitHub username.
 
