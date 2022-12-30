@@ -113,7 +113,11 @@ func main() {
 
 		pullRequests, err := fetchMergedPullRequestsByUser(context.Background(), client, name, queryVariables)
 		if err != nil {
-			c.String(500, "unable to fetch data for %s", name)
+			msg := fmt.Sprintf("unable to fetch data for %s", name)
+			c.JSON(500, gin.H{
+				"message": msg,
+			})
+			return
 		}
 
 		c.JSON(http.StatusOK, pullRequests)
