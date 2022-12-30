@@ -1,6 +1,6 @@
 # contributed-to
 
-An API which displays contributions, i.e. merged pull requests, that a user has made outside of their own projects.
+An application which displays contributions, i.e. merged pull requests, that a user has made outside of their own projects.
 
 ## Usage
 
@@ -21,7 +21,7 @@ on your own infrastructure with specific GitHub tokens.
 ## How it works
 
 This utilises the [GraphQL GitHub API](https://docs.github.com/en/graphql) to fetch the relevant data about a user's merged pull requests, filtering by those which are
-not their own projects, i.e. a repository under their GitHub username. 
+not their own projects, i.e. a repository under their GitHub username.
 
-The API call is relatively expensive in that it requests the entire history of merged pull requests until 
-there are no more remaining that GitHub has kept a record of. 
+The API call is relatively expensive in that it requests the entire history of merged pull requests until
+there are no more remaining that GitHub has kept a record of.
