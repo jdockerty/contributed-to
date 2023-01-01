@@ -108,6 +108,13 @@ func main() {
 
 	client := getGitHubClient(context.Background(), githubToken)
 
+	cache, err := lru.New[string, interface{}](cacheSize)
+	if err != nil {
+		fmt.Printf("unable to create cache: %s\n", err)
+		return
+	}
+	log.Printf("cache created with %d max entries", cacheSize)
+
 	router := gin.Default()
 
 	router.SetTrustedProxies(nil)
@@ -115,6 +122,21 @@ func main() {
 	router.GET("/user/:name", func(c *gin.Context) {
 
 		name := c.Param("name")
+
+        // Some requests can take a long time. Using an LRU cache here means
+        // that the first time a request comes in, it may take awhile to sift
+        // through all of their merged PRs, but subsequent requests are returned
+        // multiple magnitudes faster.
+		if cache.Contains(name) {
+			log.Printf("cache hit for %s\n", name)
+
+			// We can discard the "ok" here, since we have already checked
+			// via Contains.
+			data, _ := cache.Get(name)
+			c.JSON(http.StatusOK, data)
+			return
+		}
+
 		queryVariables := map[string]interface{}{
 			"name":           githubv4.String(name),
 			"mergedPRCursor": (*githubv4.String)(nil),
@@ -129,8 +151,11 @@ func main() {
 			return
 		}
 
+		cache.Add(name, pullRequests)
+		log.Printf("%s added to cache for future requests", name)
+
 		c.JSON(http.StatusOK, pullRequests)
 	})
 
-	router.Run()
+	router.Run(":" + port)
 }
