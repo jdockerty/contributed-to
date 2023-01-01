@@ -108,6 +108,10 @@ func main() {
 
 	client := getGitHubClient(context.Background(), githubToken)
 
+	// In-memory cache creation, this will lock multiple running instances to
+	// each process or container. If there is a requirement later on, we can
+	// likely move to Redis in order to have a shared cache between multiple
+	// instances of the application.
 	cache, err := lru.New[string, interface{}](cacheSize)
 	if err != nil {
 		fmt.Printf("unable to create cache: %s\n", err)
@@ -123,10 +127,10 @@ func main() {
 
 		name := c.Param("name")
 
-        // Some requests can take a long time. Using an LRU cache here means
-        // that the first time a request comes in, it may take awhile to sift
-        // through all of their merged PRs, but subsequent requests are returned
-        // multiple magnitudes faster.
+		// Some requests can take a long time. Using an LRU cache here means
+		// that the first time a request comes in, it may take awhile to sift
+		// through all of their merged PRs, but subsequent requests are returned
+		// multiple magnitudes faster.
 		if cache.Contains(name) {
 			log.Printf("cache hit for %s\n", name)
 
