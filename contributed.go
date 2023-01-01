@@ -26,7 +26,8 @@ var (
 					Repository struct {
 						NameWithOwner string
 						Owner         struct {
-							Login string
+							Login     string
+							AvatarURL string
 						}
 					}
 				}
@@ -44,34 +45,42 @@ var (
 
 // Info is returned to the user.
 type Info struct {
-	Owner string
-	URL   string
+	Owner     string
+	URL       string
+	AvatarURL string
+}
+type MergedPullRequestInfo struct {
+	RepositoryOwner string
+	PullRequestURL  string
+	OwnerIconURL    string
 }
 
 // fetchMergedPullRequestsByUser will fetch the merged pull requests for a given
 // user from the GitHub API, it initially uses a nil cursor that is then populated
 // from recurring calls.
-func fetchMergedPullRequestsByUser(ctx context.Context, client *githubv4.Client, name string, variables map[string]interface{}) ([]Info, error) {
+func fetchMergedPullRequestsByUser(ctx context.Context, client *githubv4.Client, name string, variables map[string]interface{}) ([]MergedPullRequestInfo, error) {
 
-	var allRepos []Info
+	var allMergedPRs []MergedPullRequestInfo
+
 	for {
 		if err := client.Query(context.Background(), &query, variables); err != nil {
 			fmt.Println(err)
 			return nil, err
 		}
 
-		for _, repo := range query.User.PullRequests.Nodes {
+		for _, node := range query.User.PullRequests.Nodes {
 
-			if repo.Repository.Owner.Login == name {
+			if node.Repository.Owner.Login == name {
 				continue
 			}
 
-			info := Info{
-				Owner: repo.Repository.NameWithOwner,
-				URL:   repo.Permalink,
+			mergedPR := MergedPullRequestInfo{
+				RepositoryOwner: node.Repository.NameWithOwner,
+				PullRequestURL:  node.Permalink,
+				OwnerIconURL:    node.Repository.Owner.AvatarURL,
 			}
 
-			allRepos = append(allRepos, info)
+			allMergedPRs = append(allMergedPRs, mergedPR)
 		}
 
 		if !query.User.PullRequests.PageInfo.HasNextPage {
@@ -81,7 +90,7 @@ func fetchMergedPullRequestsByUser(ctx context.Context, client *githubv4.Client,
 		variables["mergedPRCursor"] = githubv4.String(query.User.PullRequests.PageInfo.EndCursor)
 	}
 
-	return allRepos, nil
+	return allMergedPRs, nil
 }
 
 // getGitHubClient wraps the creation of a GitHub GraphQL client.
