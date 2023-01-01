@@ -22,6 +22,7 @@ var (
 		User struct {
 			PullRequests struct {
 				Nodes []struct {
+					Title      string
 					Permalink  string
 					Repository struct {
 						NameWithOwner string
@@ -46,6 +47,7 @@ var (
 // MergedPullRequestInfo contains the relevant information which is fetched from
 // the GraphQL query, this is returned to the user.
 type MergedPullRequestInfo struct {
+	Title           string
 	RepositoryOwner string
 	PullRequestURL  string
 	OwnerIconURL    string
@@ -71,6 +73,7 @@ func fetchMergedPullRequestsByUser(ctx context.Context, client *githubv4.Client,
 			}
 
 			mergedPR := MergedPullRequestInfo{
+				Title:           node.Title,
 				RepositoryOwner: node.Repository.NameWithOwner,
 				PullRequestURL:  node.Permalink,
 				OwnerIconURL:    node.Repository.Owner.AvatarURL,
