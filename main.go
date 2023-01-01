@@ -2,41 +2,50 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
+	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
+)
+
+var (
+
+	// The static GraphQL query which we need to use in order to fetch the relevant
+	// data from the GitHub API.
+	query struct {
+		User struct {
+			PullRequests struct {
+				Nodes []struct {
+					Permalink  string
+					Repository struct {
+						NameWithOwner string
+						Owner         struct {
+							Login string
+						}
+					}
+				}
+				PageInfo struct {
+					EndCursor   githubv4.String
+					HasNextPage bool
+				}
+			} `graphql:"pullRequests(first: 100, after: $mergedPRCursor, states: MERGED)"`
+		} `graphql:"user(login: $name)"`
+	}
+
+	cacheSize = *flag.Int("cache-size", 10000, "number of items available to cache")
+	port      = *flag.String("port", "6000", "port to bind")
 )
 
 // Info is returned to the user.
 type Info struct {
 	Owner string
 	URL   string
-}
-
-// The static GraphQL query which we need to use in order to fetch the relevant
-// data from the GitHub API.
-var query struct {
-	User struct {
-		PullRequests struct {
-			Nodes []struct {
-				Permalink  string
-				Repository struct {
-					NameWithOwner string
-					Owner         struct {
-						Login string
-					}
-				}
-			}
-			PageInfo struct {
-				EndCursor   githubv4.String
-				HasNextPage bool
-			}
-		} `graphql:"pullRequests(first: 100, after: $mergedPRCursor, states: MERGED)"`
-	} `graphql:"user(login: $name)"`
 }
 
 // fetchMergedPullRequestsByUser will fetch the merged pull requests for a given
