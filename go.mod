@@ -3,13 +3,14 @@ module github.com/jdockerty/contributed-to
 go 1.19
 
 require (
+	github.com/gin-gonic/gin v1.8.2
+	github.com/hashicorp/golang-lru/v2 v2.0.1
 	github.com/shurcooL/githubv4 v0.0.0-20221229060216-a8d4a561cc93
 	golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be
 )
 
 require (
 	github.com/gin-contrib/sse v0.1.0 // indirect
-	github.com/gin-gonic/gin v1.8.2 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect
 	github.com/go-playground/universal-translator v0.18.0 // indirect
 	github.com/go-playground/validator/v10 v10.11.1 // indirect

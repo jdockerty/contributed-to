@@ -2,41 +2,50 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
+	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
+)
+
+var (
+
+	// The static GraphQL query which we need to use in order to fetch the relevant
+	// data from the GitHub API.
+	query struct {
+		User struct {
+			PullRequests struct {
+				Nodes []struct {
+					Permalink  string
+					Repository struct {
+						NameWithOwner string
+						Owner         struct {
+							Login string
+						}
+					}
+				}
+				PageInfo struct {
+					EndCursor   githubv4.String
+					HasNextPage bool
+				}
+			} `graphql:"pullRequests(first: 100, after: $mergedPRCursor, states: MERGED)"`
+		} `graphql:"user(login: $name)"`
+	}
+
+	cacheSize int
+	port      string
 )
 
 // Info is returned to the user.
 type Info struct {
 	Owner string
 	URL   string
-}
-
-// The static GraphQL query which we need to use in order to fetch the relevant
-// data from the GitHub API.
-var query struct {
-	User struct {
-		PullRequests struct {
-			Nodes []struct {
-				Permalink  string
-				Repository struct {
-					NameWithOwner string
-					Owner         struct {
-						Login string
-					}
-				}
-			}
-			PageInfo struct {
-				EndCursor   githubv4.String
-				HasNextPage bool
-			}
-		} `graphql:"pullRequests(first: 100, after: $mergedPRCursor, states: MERGED)"`
-	} `graphql:"user(login: $name)"`
 }
 
 // fetchMergedPullRequestsByUser will fetch the merged pull requests for a given
@@ -90,6 +99,9 @@ func getGitHubClient(ctx context.Context, token string) *githubv4.Client {
 }
 
 func main() {
+	flag.IntVar(&cacheSize, "cache-size", 10000, "number of items available to cache")
+	flag.StringVar(&port, "port", "6000", "port to bind")
+	flag.Parse()
 
 	githubToken := os.Getenv("GH_TOKEN_CONTRIBUTED_TO")
 	if githubToken == "" {
@@ -99,6 +111,17 @@ func main() {
 
 	client := getGitHubClient(context.Background(), githubToken)
 
+	// In-memory cache creation, this will lock multiple running instances to
+	// each process or container. If there is a requirement later on, we can
+	// likely move to Redis in order to have a shared cache between multiple
+	// instances of the application.
+	cache, err := lru.New[string, interface{}](cacheSize)
+	if err != nil {
+		fmt.Printf("unable to create cache: %s\n", err)
+		return
+	}
+	log.Printf("cache created with %d max entries", cacheSize)
+
 	router := gin.Default()
 
 	router.SetTrustedProxies(nil)
@@ -106,6 +129,21 @@ func main() {
 	router.GET("/user/:name", func(c *gin.Context) {
 
 		name := c.Param("name")
+
+		// Some requests can take a long time. Using an LRU cache here means
+		// that the first time a request comes in, it may take awhile to sift
+		// through all of their merged PRs, but subsequent requests are returned
+		// multiple magnitudes faster.
+		if cache.Contains(name) {
+			log.Printf("cache hit for %s\n", name)
+
+			// We can discard the "ok" here, since we have already checked
+			// via Contains.
+			data, _ := cache.Get(name)
+			c.JSON(http.StatusOK, data)
+			return
+		}
+
 		queryVariables := map[string]interface{}{
 			"name":           githubv4.String(name),
 			"mergedPRCursor": (*githubv4.String)(nil),
@@ -120,8 +158,11 @@ func main() {
 			return
 		}
 
+		cache.Add(name, pullRequests)
+		log.Printf("%s added to cache for future requests", name)
+
 		c.JSON(http.StatusOK, pullRequests)
 	})
 
-	router.Run()
+	router.Run(":" + port)
 }
