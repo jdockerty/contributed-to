@@ -38,8 +38,8 @@ var (
 		} `graphql:"user(login: $name)"`
 	}
 
-	cacheSize = *flag.Int("cache-size", 10000, "number of items available to cache")
-	port      = *flag.String("port", "6000", "port to bind")
+	cacheSize int
+	port      string
 )
 
 // Info is returned to the user.
@@ -99,6 +99,9 @@ func getGitHubClient(ctx context.Context, token string) *githubv4.Client {
 }
 
 func main() {
+	flag.IntVar(&cacheSize, "cache-size", 10000, "number of items available to cache")
+	flag.StringVar(&port, "port", "6000", "port to bind")
+	flag.Parse()
 
 	githubToken := os.Getenv("GH_TOKEN_CONTRIBUTED_TO")
 	if githubToken == "" {
