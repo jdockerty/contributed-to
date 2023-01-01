@@ -43,12 +43,8 @@ var (
 	port      string
 )
 
-// Info is returned to the user.
-type Info struct {
-	Owner     string
-	URL       string
-	AvatarURL string
-}
+// MergedPullRequestInfo contains the relevant information which is fetched from
+// the GraphQL query, this is returned to the user.
 type MergedPullRequestInfo struct {
 	RepositoryOwner string
 	PullRequestURL  string
