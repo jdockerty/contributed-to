@@ -46,19 +46,25 @@ var (
 
 // MergedPullRequestInfo contains the relevant information which is fetched from
 // the GraphQL query, this is returned to the user.
-type MergedPullRequestInfo struct {
-	Title           string
-	RepositoryOwner string
-	PullRequestURL  string
-	OwnerIconURL    string
+type MergedPullRequestInfo map[string]PullRequestInfo
+
+// PullRequestInfo represents information about a pull request to a repository
+// owner mapping. This holds the avatar URL and merged pull requests together.
+type PullRequestInfo struct {
+
+	// AvatarURL is the display picture of the repository owner or organisation.
+	AvatarURL string
+
+	// PullRequests is a mapping between the title and permalink of the PR.
+	PullRequests map[string]string
 }
 
 // fetchMergedPullRequestsByUser will fetch the merged pull requests for a given
 // user from the GitHub API, it initially uses a nil cursor that is then populated
 // from recurring calls.
-func fetchMergedPullRequestsByUser(ctx context.Context, client *githubv4.Client, name string, variables map[string]interface{}) ([]MergedPullRequestInfo, error) {
+func fetchMergedPullRequestsByUser(ctx context.Context, client *githubv4.Client, name string, variables map[string]interface{}) (map[string]PullRequestInfo, error) {
 
-	var allMergedPRs []MergedPullRequestInfo
+	mergedPRInfo := make(MergedPullRequestInfo)
 
 	for {
 		if err := client.Query(context.Background(), &query, variables); err != nil {
