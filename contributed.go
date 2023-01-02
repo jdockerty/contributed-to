@@ -78,24 +78,30 @@ func fetchMergedPullRequestsByUser(ctx context.Context, client *githubv4.Client,
 				continue
 			}
 
-			mergedPR := MergedPullRequestInfo{
-				Title:           node.Title,
-				RepositoryOwner: node.Repository.NameWithOwner,
-				PullRequestURL:  node.Permalink,
-				OwnerIconURL:    node.Repository.Owner.AvatarURL,
+			// Initialise structure for repository owner to merged requests
+			// mapping.
+			if _, ok := mergedPRInfo[node.Repository.Owner.Login]; !ok {
+				initMap := make(map[string]string)
+				mergedPRInfo[node.Repository.Owner.Login] = PullRequestInfo{
+					AvatarURL:    node.Repository.Owner.AvatarURL,
+					PullRequests: initMap,
+				}
 			}
 
-			allMergedPRs = append(allMergedPRs, mergedPR)
+			mergedPRInfo[node.Repository.Owner.Login].PullRequests[node.Title] = node.Permalink
+
 		}
 
+		// No more pull requests available
 		if !query.User.PullRequests.PageInfo.HasNextPage {
 			break
 		}
 
+		// Update cursor for next page
 		variables["mergedPRCursor"] = githubv4.String(query.User.PullRequests.PageInfo.EndCursor)
 	}
 
-	return allMergedPRs, nil
+	return mergedPRInfo, nil
 }
 
 // getGitHubClient wraps the creation of a GitHub GraphQL client.
