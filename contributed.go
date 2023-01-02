@@ -135,7 +135,7 @@ func main() {
 	// each process or container. If there is a requirement later on, we can
 	// likely move to Redis in order to have a shared cache between multiple
 	// instances of the application.
-	cache, err := lru.New[string, []MergedPullRequestInfo](cacheSize)
+	cache, err := lru.New[string, MergedPullRequestInfo](cacheSize)
 	if err != nil {
 		fmt.Printf("unable to create cache: %s\n", err)
 		return
