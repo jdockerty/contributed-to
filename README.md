@@ -4,7 +4,7 @@ An application which displays contributions, i.e. merged pull requests, that a u
 
 ## Usage
 
-You can make a HTTP request yourself to `api.contributed-to.jdocklabs.co.uk/<user>` to receive a JSON payload of information about a particular user.
+You can make a HTTP request yourself to `api.contributed-to.jdocklabs.co.uk/user/<user>` to receive a JSON payload of information about a particular user.
 
 
 ### CLI
