@@ -26,4 +26,5 @@ This utilises the [GraphQL GitHub API](https://docs.github.com/en/graphql) to fe
 not their own projects, i.e. a repository under their GitHub username.
 
 The API call is relatively expensive in that it requests the entire history of merged pull requests until
-there are no more remaining that GitHub has kept a record of.
+there are no more remaining that GitHub has kept a record of. It also caches responses, meaning that the first request may take some time but subsequent requests are served
+from the cache and are *blazingly* fast.
