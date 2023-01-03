@@ -25,8 +25,8 @@ var (
 					Title      string
 					Permalink  string
 					Repository struct {
-						NameWithOwner string
-						Owner         struct {
+						Name  string
+						Owner struct {
 							Login     string
 							AvatarURL string
 						}
@@ -53,10 +53,10 @@ type MergedPullRequestInfo map[string]PullRequestInfo
 type PullRequestInfo struct {
 
 	// AvatarURL is the display picture of the repository owner or organisation.
-	AvatarURL string
+	AvatarURL string `json:"avatarURL"`
 
 	// PullRequests is a mapping between the title and permalink of the PR.
-	PullRequests map[string]string
+	PullRequests map[string]map[string]string `json:"pullRequests"`
 }
 
 // fetchMergedPullRequestsByUser will fetch the merged pull requests for a given
@@ -78,17 +78,23 @@ func fetchMergedPullRequestsByUser(ctx context.Context, client *githubv4.Client,
 				continue
 			}
 
+			initPRMap := make(map[string]map[string]string)
+			initMap := make(map[string]string)
 			// Initialise structure for repository owner to merged requests
 			// mapping.
 			if _, ok := mergedPRInfo[node.Repository.Owner.Login]; !ok {
-				initMap := make(map[string]string)
 				mergedPRInfo[node.Repository.Owner.Login] = PullRequestInfo{
 					AvatarURL:    node.Repository.Owner.AvatarURL,
-					PullRequests: initMap,
+					PullRequests: initPRMap,
 				}
 			}
 
-			mergedPRInfo[node.Repository.Owner.Login].PullRequests[node.Title] = node.Permalink
+			pullRequests := mergedPRInfo[node.Repository.Owner.Login].PullRequests
+			if _, ok := pullRequests[node.Repository.Name]; !ok {
+				pullRequests[node.Repository.Name] = initMap
+			}
+
+			pullRequests[node.Repository.Name][node.Title] = node.Permalink
 
 		}
 
