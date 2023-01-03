@@ -55,9 +55,37 @@ type PullRequestInfo struct {
 	// AvatarURL is the display picture of the repository owner or organisation.
 	AvatarURL string `json:"avatarURL"`
 
-	// PullRequests is a mapping between the title and permalink of the PR.
-	PullRequests map[string]map[string]string `json:"pullRequests"`
+	// PullRequests is the internal representation for the map structure of a
+	// owner/organisation to multiple merged pull requests.
+	PullRequests PullRequests `json:"pullRequests"`
 }
+
+// PullRequests is a custom wrapper around the structure of the response, this
+// is a mapping of the repository owner/organisation to the repositories that
+// they own, with the merged pull requests contained within the mapping.
+//
+// For example:
+//
+//	{
+//	  "google": {
+//	    "avatarURL": "...",
+//	    "pullRequests": {
+//	      "go-jsonnet": {
+//	        "PR Title 1": "URL 1",
+//	        "PR Title 2": "URL 2"
+//	      }
+//	    }
+//	  },
+//	  "hashicorp": {
+//	    "avatarURL": "...",
+//	    "pullRequests": {
+//	      "nomad": {
+//	        "PR Title 1": " URL 1"
+//	      }
+//	    }
+//	  }
+//	}
+type PullRequests map[string]map[string]string
 
 // fetchMergedPullRequestsByUser will fetch the merged pull requests for a given
 // user from the GitHub API, it initially uses a nil cursor that is then populated
