@@ -180,6 +180,10 @@ func main() {
 
 	router.SetTrustedProxies(nil)
 
+	router.GET("/health", func(c *gin.Context) {
+		c.String(http.StatusOK, "OK")
+	})
+
 	router.GET("/user/:name", func(c *gin.Context) {
 
 		name := c.Param("name")
