@@ -5,7 +5,7 @@ on:
     tags:
       - 'v*.*.*'
 jobs:
-  run-all-tests:
+  push-image:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
