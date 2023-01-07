@@ -4,6 +4,10 @@ on:
   push:
     tags:
       - 'v*.*.*'
+
+env:
+  owner: jdockerty
+
 jobs:
   push-image:
     runs-on: ubuntu-latest
@@ -14,10 +18,12 @@ jobs:
       - name: Get tag
         id: tag
         uses: dawidd6/action-get-tag@v1.1.0
+        with:
+          strip_v: true
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
-          username: $GITHUB_REPOSITORY_OWNER
+          username: ${{ env.owner }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push Docker image
@@ -25,5 +31,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: |
-            $GITHUB_REPOSITORY_OWNER/contributed-to:api-${{ steps.tag.outputs.tag }}
+          tags: ${{ env.owner }}/contributed-to:api-${{ steps.tag.outputs.tag }}
