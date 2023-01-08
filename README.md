@@ -15,7 +15,7 @@ A small CLI is also available which can be installed using
 go install github.com/jdockerty/contributed-to/cmd/contributed@latest
 ```
 
-By default, this points to `api.contributed.jdocklabs.co.uk` but can be altered using the `address` flag if you wish to host the application
+By default, this points to `api.contributed.jdocklabs.co.uk` but can be altered using the `url` flag if you wish to host the application
 on your own infrastructure with specific GitHub tokens.
 
 You can use the application by calling it like so
