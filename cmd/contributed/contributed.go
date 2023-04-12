@@ -19,16 +19,30 @@ const (
 )
 
 var (
-	url      string
-	fullInfo bool
+	url          string
+	fullInfo     bool
+	refreshCache bool
 )
 
-func getUser(user string) (contributed.MergedPullRequestInfo, error) {
+func getUser(user string, refreshCache bool) (contributed.MergedPullRequestInfo, error) {
+
+	c := &http.Client{}
+
 	userEndpoint := fmt.Sprintf("%s/%s", url, user)
-	resp, err := http.Get(userEndpoint)
+	req, err := http.NewRequest("GET", userEndpoint, nil)
 	if err != nil {
 		return nil, err
 	}
+
+	if refreshCache {
+		req.Header.Add(contributed.CacheRefreshHeader, "true")
+	}
+
+	resp, err := c.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
@@ -49,6 +63,7 @@ func main() {
 
 	flag.StringVar(&url, "url", publicEndpoint, "url that the service is running on.")
 	flag.BoolVar(&fullInfo, "full", false, "display full information about pull requests, e.g. PR title and URL")
+	flag.BoolVar(&refreshCache, "refresh", false, "invalidate the given names and refresh the cache")
 
 	flag.Parse()
 
@@ -57,7 +72,7 @@ func main() {
 	users := flag.CommandLine.Args()
 
 	for _, user := range users {
-		info, err := getUser(user)
+		info, err := getUser(user, refreshCache)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)

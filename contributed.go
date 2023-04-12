@@ -54,6 +54,11 @@ func main() {
 	router.GET("/user/:name", func(c *gin.Context) {
 
 		name := c.Param("name")
+		_, ok := c.Request.Header[contributed.CacheRefreshHeader]
+		if ok {
+			cache.Remove(name)
+			log.Printf("%s invalidated from cache", name)
+		}
 
 		// Some requests can take a long time. Using an LRU cache here means
 		// that the first time a request comes in, it may take awhile to sift
