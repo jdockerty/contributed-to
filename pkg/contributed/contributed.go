@@ -8,6 +8,11 @@ import (
 	"golang.org/x/oauth2"
 )
 
+const (
+	// HTTP header to force cache invalidation
+	CacheRefreshHeader = "X-Contributed-Cache-Refresh"
+)
+
 var (
 
 	// The static GraphQL query which we need to use in order to fetch the relevant
