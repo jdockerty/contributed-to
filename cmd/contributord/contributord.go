@@ -20,7 +20,7 @@ var (
 )
 
 func main() {
-	flag.IntVar(&cacheSize, "cache-size", 10000, "number of items available to cache")
+	flag.IntVar(&cacheSize, "cache-size", 1000, "number of items available to cache")
 	flag.StringVar(&port, "port", "6000", "port to bind")
 	flag.Parse()
 

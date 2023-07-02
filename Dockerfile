@@ -8,16 +8,16 @@ RUN go mod download
 
 COPY . ./
 
-RUN go build -o contributed-to
+RUN go build -o contributord ./cmd/contributord
 
 FROM gcr.io/distroless/base-debian11
 
 WORKDIR /
 
-COPY --from=build /app/contributed-to /contributed-to
+COPY --from=build /app/contributord /contributord
 
 EXPOSE 6000
 
 USER nonroot:nonroot
 
-ENTRYPOINT ["/contributed-to"]
+ENTRYPOINT ["/contributord"]
