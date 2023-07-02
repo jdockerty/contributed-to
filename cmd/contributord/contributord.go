@@ -1,5 +1,7 @@
 package main
 
+// contributord is the API server and does a bulk of the work.
+
 import (
 	"context"
 	"flag"
@@ -7,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/gin-gonic/gin"
 	lru "github.com/hashicorp/golang-lru/v2"
@@ -15,19 +18,24 @@ import (
 )
 
 var (
-	cacheSize int
-	port      string
+	cacheSize   int
+	port        string
+	addr        string
+	ui          bool
+	uiServeFile string
 )
 
 func main() {
 	flag.IntVar(&cacheSize, "cache-size", 1000, "number of items available to cache")
+	flag.StringVar(&addr, "address", "localhost", "address to bind")
 	flag.StringVar(&port, "port", "6000", "port to bind")
+	flag.StringVar(&uiServeFile, "serve-file", "", "path to templated HTML to serve as the frontend")
 	flag.Parse()
 
 	githubToken := os.Getenv("GH_TOKEN_CONTRIBUTED_TO")
 	if githubToken == "" {
 		fmt.Println("GH_TOKEN_CONTRIBUTED_TO environment variable must be set.")
-		return
+		os.Exit(1)
 	}
 
 	client := contributed.GetGitHubClient(context.Background(), githubToken)
@@ -47,11 +55,44 @@ func main() {
 
 	router.SetTrustedProxies(nil)
 
-	router.GET("/health", func(c *gin.Context) {
+	router.GET("/api/health", func(c *gin.Context) {
 		c.String(http.StatusOK, "OK")
 	})
 
-	router.GET("/user/:name", func(c *gin.Context) {
+	if uiServeFile != "" {
+
+		type htmlData struct {
+			User string
+		}
+
+		router.LoadHTMLFiles(uiServeFile) // Load templated HTML into renderer
+
+		// Initial loading of the page, no value is given
+		router.GET("/", func(c *gin.Context) {
+			c.HTML(http.StatusOK, filepath.Base(uiServeFile), nil)
+		})
+
+		// Form data for the GitHub user is sent as a POST request,
+		// so it will land here and re-render the template with some special logic.
+		router.POST("/", func(c *gin.Context) {
+
+			githubUser, ok := c.GetPostForm("github_user")
+			if !ok {
+				c.String(http.StatusBadRequest, "invalid github_user provided")
+				return
+			}
+
+			data := &htmlData{
+				User: githubUser,
+			}
+
+			c.HTML(http.StatusOK, filepath.Base(uiServeFile), data)
+
+		})
+
+	}
+
+	router.GET("/api/user/:name", func(c *gin.Context) {
 
 		name := c.Param("name")
 		_, ok := c.Request.Header[contributed.CacheRefreshHeader]
@@ -94,5 +135,5 @@ func main() {
 		c.JSON(http.StatusOK, pullRequests)
 	})
 
-	router.Run(":" + port)
+	router.Run(fmt.Sprintf("%s:%s", addr, port))
 }
