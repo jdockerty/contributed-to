@@ -61,11 +61,15 @@ func main() {
 
 	if uiServeFile != "" {
 
-		type htmlData struct {
-			User string
+		type pageData struct {
+			Repo string
+			MR   contributed.PullRequestInfo
 		}
 
+		var htmlData []pageData
+
 		router.LoadHTMLFiles(uiServeFile) // Load templated HTML into renderer
+		router.Static("./static", "static")
 
 		// Initial loading of the page, no value is given
 		router.GET("/", func(c *gin.Context) {
@@ -82,11 +86,54 @@ func main() {
 				return
 			}
 
-			data := &htmlData{
-				User: githubUser,
+			if cache.Contains(githubUser) {
+				log.Printf("[UI] cache hit for %s\n", githubUser)
+
+				// We can discard the "ok" here, since we have already checked
+				// via Contains.
+				pullRequests, _ := cache.Get(githubUser)
+
+				for repo, prInfo := range pullRequests {
+					log.Printf("Repo: %s\n", repo)
+					log.Printf("Info: %+v\n", prInfo)
+					pd := pageData{
+						Repo: repo,
+						MR:   prInfo,
+					}
+
+					htmlData = append(htmlData, pd)
+
+				}
+
+				c.HTML(http.StatusOK, filepath.Base(uiServeFile), htmlData)
+				return
 			}
 
-			c.HTML(http.StatusOK, filepath.Base(uiServeFile), data)
+			queryVariables := map[string]interface{}{
+				"name":           githubv4.String(githubUser),
+				"mergedPRCursor": (*githubv4.String)(nil),
+			}
+
+			pullRequests, err := contributed.FetchMergedPullRequestsByUser(context.Background(), client, githubUser, queryVariables)
+			if err != nil {
+				// show error
+				c.HTML(http.StatusOK, filepath.Base(uiServeFile), nil)
+				return
+			}
+
+			for repo, prInfo := range pullRequests {
+				log.Printf("Repo: %s\n", repo)
+				log.Printf("Info: %+v\n", prInfo)
+				pd := pageData{
+					Repo: repo,
+					MR:   prInfo,
+				}
+
+				htmlData = append(htmlData, pd)
+
+			}
+
+			c.HTML(http.StatusOK, filepath.Base(uiServeFile), htmlData)
 
 		})
 
