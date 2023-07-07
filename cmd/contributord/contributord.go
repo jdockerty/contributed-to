@@ -1,7 +1,5 @@
 package main
 
-// contributord is the API server and does a bulk of the work.
-
 import (
 	"context"
 	"flag"
