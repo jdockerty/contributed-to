@@ -25,6 +25,63 @@ var (
 	uiServeFile string
 )
 
+// TODO: clean this up and use the structs here for the actual return data so we
+// don't have to do anything special for returning the information and manipulating it.
+func buildHtmlData(pullRequests contributed.MergedPullRequestInfo) []pageData {
+
+	var pd []pageData
+
+	for owner, prInfo := range pullRequests {
+		// log.Printf("Owner: %s, Info: %+v\n", owner, prInfo)
+
+		data := pageData{
+			Owner:     owner,
+			AvatarURL: prInfo.AvatarURL,
+			Repos:     []Repository{},
+		}
+
+		for k, v := range prInfo.PullRequests {
+			//log.Printf("Repo: %s, Reqs: %+v\n", k, v)
+
+			r := Repository{
+				Name:         k,
+				PullRequests: []PullReq{},
+			}
+
+			for title, url := range v {
+				//log.Printf("Title: %s, URL: %s\n", title, url)
+				req := PullReq{
+					Title: title,
+					URL:   url,
+				}
+				r.PullRequests = append(r.PullRequests, req)
+			}
+
+			data.Repos = append(data.Repos, r)
+		}
+
+		pd = append(pd, data)
+
+	}
+
+	return pd
+
+}
+
+type PullReq struct {
+	Title string
+	URL   string
+}
+type Repository struct {
+	Name         string
+	PullRequests []PullReq
+}
+type pageData struct {
+	Owner     string
+	AvatarURL string
+	Repos     []Repository
+}
+
 func main() {
 	flag.IntVar(&cacheSize, "cache-size", 1000, "number of items available to cache")
 	flag.StringVar(&addr, "address", "localhost", "address to bind")
@@ -61,13 +118,6 @@ func main() {
 
 	if uiServeFile != "" {
 
-		type pageData struct {
-			Repo string
-			MR   contributed.PullRequestInfo
-		}
-
-		var htmlData []pageData
-
 		router.LoadHTMLFiles(uiServeFile) // Load templated HTML into renderer
 		router.Static("./static", "static")
 
@@ -93,17 +143,7 @@ func main() {
 				// via Contains.
 				pullRequests, _ := cache.Get(githubUser)
 
-				for repo, prInfo := range pullRequests {
-					log.Printf("Repo: %s\n", repo)
-					log.Printf("Info: %+v\n", prInfo)
-					pd := pageData{
-						Repo: repo,
-						MR:   prInfo,
-					}
-
-					htmlData = append(htmlData, pd)
-
-				}
+				htmlData := buildHtmlData(pullRequests)
 
 				c.HTML(http.StatusOK, filepath.Base(uiServeFile), htmlData)
 				return
@@ -121,17 +161,7 @@ func main() {
 				return
 			}
 
-			for repo, prInfo := range pullRequests {
-				log.Printf("Repo: %s\n", repo)
-				log.Printf("Info: %+v\n", prInfo)
-				pd := pageData{
-					Repo: repo,
-					MR:   prInfo,
-				}
-
-				htmlData = append(htmlData, pd)
-
-			}
+			htmlData := buildHtmlData(pullRequests)
 
 			c.HTML(http.StatusOK, filepath.Base(uiServeFile), htmlData)
 

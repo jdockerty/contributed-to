@@ -33,8 +33,27 @@
           <ul>
 
               {{ range . }}
-                <p> {{ .Repo }} </p>
-              <li> {{ .MR }} </li>
+              <li> {{ .Owner }} </li>
+              <li> {{ .AvatarURL }} </li>
+              <li>
+                  <ul>
+                      {{ range .Repos }}
+
+                      <li> {{ .Name }} </li>
+                      <li>
+                          <ul>
+                              {{ range .PullRequests }}
+                              <li> {{ .Title }} </li>
+                              <li> {{ .URL }} </li>
+                              {{ end }}
+                          </ul>
+
+                      </li>
+
+                      {{ end }}
+
+                  </ul>
+              </li>
 
               {{end}}
           </ul>
