@@ -25,6 +25,8 @@ var (
 
 // TODO: clean this up and use the structs here for the actual return data so we
 // don't have to do anything special for returning the information and manipulating it.
+// This is fine for a "quick fix" to get the templated UI working, but not great for
+// longer term maintainability.
 func buildHtmlData(pullRequests contributed.MergedPullRequestInfo) []pageData {
 
 	var pd []pageData
