@@ -32,7 +32,6 @@ func buildHtmlData(pullRequests contributed.MergedPullRequestInfo) []pageData {
 	var pd []pageData
 
 	for owner, prInfo := range pullRequests {
-		// log.Printf("Owner: %s, Info: %+v\n", owner, prInfo)
 
 		data := pageData{
 			Owner:     owner,
@@ -41,7 +40,6 @@ func buildHtmlData(pullRequests contributed.MergedPullRequestInfo) []pageData {
 		}
 
 		for k, v := range prInfo.PullRequests {
-			//log.Printf("Repo: %s, Reqs: %+v\n", k, v)
 
 			r := Repository{
 				Name:         k,
@@ -49,7 +47,6 @@ func buildHtmlData(pullRequests contributed.MergedPullRequestInfo) []pageData {
 			}
 
 			for title, url := range v {
-				//log.Printf("Title: %s, URL: %s\n", title, url)
 				req := PullReq{
 					Title: title,
 					URL:   url,
@@ -117,6 +114,7 @@ func main() {
 	})
 
 	if uiServeFile != "" {
+		log.Printf("Serving templated UI from %s\n", uiServeFile)
 
 		router.LoadHTMLFiles(uiServeFile) // Load templated HTML into renderer
 		router.Static("./static", "static")
