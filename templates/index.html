@@ -17,35 +17,64 @@
 </head>
 <body>
   <div class="heading">
-    <h1 class="drac-heading drac-heading-xl drac-text-white">
-    Contributed</h1>
+    <h1 class="drac-heading drac-heading-2xl">
+    Contributed
+    </h1>
+    <h5 class="drac-heading drac-heading-sm">
+        Display public contributions for a GitHub user
+    </h5>
   </div>
   <div class="content">
-    <div class="drac-box drac-card drac-bg-purple drac-p-md">
+    <div class="drac-box drac-p-md">
       <form action="/" method="post">
-        <label class="" for="github_user">Enter GitHub username</label><br>
-        <input type="text" id="github_user" name="github_user"><br>
+        <label class="drac-text" for="github_user">Enter GitHub username</label><br>
+        <p class="drac-text">
+          Be aware that it may take sometime to retrieve all public contributions for very active users!
+        </p>
+
+        <div class="github_user">
+          <input class="drac-input drac-input-lg drac-input-white drac-text-white drac-m-xs"
+            type="text" id="github_user" name="github_user" placeholder="Github username">
+        </div>
         <br>
-        <input class="drac-btn drac-bg-purple" type="submit" value=
-        "Submit">
+        <br>
+
+        <input class="drac-btn drac-bg-purple" type="submit" value="Submit">
       </form>
+
       <div class="github">
-          <ul>
+          <ul class="drac-list drac-list-purple">
 
               {{ range . }}
-              <li> {{ .Owner }} </li>
-              <li> {{ .AvatarURL }} </li>
-              <li>
-                  <ul>
+
+              <div class="contribution">
+
+              <div class="repoOwner">
+              <li class="drac-text drac-text-white">
+                  <div class="repoAvatar">
+                  <span class="drac-avatar">
+                      <span class="drac-avatar-background"
+                          style="background-image: url({{ .AvatarURL }});">
+                      </span>
+                  </span>
+                  </div>
+                  {{ .Owner }}
+              </li>
+              </div>
+
+              <li class="drac-text drac-text-white">
+                  <div class="repos">
+                  <ul class="drac-list drac-list-purple">
                       {{ range .Repos }}
 
-                      <li> {{ .Name }} </li>
-                      <li>
-                          <ul>
-                              {{ range .PullRequests }}
-                              <li> {{ .Title }} </li>
-                              <li> {{ .URL }} </li>
-                              {{ end }}
+                      <li class="drac-text drac-text-white"> {{ .Name }} </li>
+                      <li class="drac-text drac-text-white">
+                          <ul class="drac-list drac-list-purple">
+                                  {{ range .PullRequests }}
+                                  <li class="drac-text drac-text-white pullRequests">
+                                      <a href="{{ .URL }}"> {{ .Title }} </a>
+                                  </li>
+                                  {{ end }}
                           </ul>
 
                       </li>
@@ -53,9 +82,12 @@
                       {{ end }}
 
                   </ul>
+                  </div>
               </li>
 
               {{end}}
+
+              </div>
           </ul>
       </div>
     </div>

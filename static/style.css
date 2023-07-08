@@ -112,14 +112,38 @@ a.active *,
 	color: rgba(139, 233, 253, 1) !important;
 }
 
-.drac-box {
-    height: auto;
-}
-
 .heading {
     margin: auto;
     text-align: center;
-    padding: 10px; 
+    padding: 1vh;
+}
+
+.contribution {
+    padding-top: 3%;
+}
+
+.github_user {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.repoOwner {
+    display: flex;
+}
+
+.repoAvatar {
+    display: flex;
+}
+
+.repos {
+    display: flex;
+}
+
+
+.pullRequests {
+    padding: 5px;
 }
 
 
