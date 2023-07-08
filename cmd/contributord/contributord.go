@@ -83,7 +83,7 @@ func main() {
 	flag.IntVar(&cacheSize, "cache-size", 1000, "number of items available to cache")
 	flag.StringVar(&addr, "address", "localhost", "address to bind")
 	flag.StringVar(&port, "port", "6000", "port to bind")
-	flag.StringVar(&uiServeFile, "serve-file", "", "path to templated HTML to serve as the frontend")
+	flag.StringVar(&uiServeFile, "serve-file", "templates/index.html", "path to templated HTML to serve as the frontend")
 	flag.Parse()
 
 	githubToken := os.Getenv("GH_TOKEN_CONTRIBUTED_TO")
