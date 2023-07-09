@@ -129,17 +129,13 @@ a.active *,
   text-align: center;
 }
 
-.repoOwner {
-    display: flex;
-}
+.contribution {}
 
-.repoAvatar {
-    display: flex;
-}
+.repoOwner {}
 
-.repos {
-    display: flex;
-}
+.repoAvatar {}
+
+.repos {}
 
 
 .pullRequests {
