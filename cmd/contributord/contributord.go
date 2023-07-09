@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/gin-gonic/gin"
 	lru "github.com/hashicorp/golang-lru/v2"
@@ -15,19 +16,80 @@ import (
 )
 
 var (
-	cacheSize int
-	port      string
+	cacheSize   int
+	port        string
+	addr        string
+	ui          bool
+	uiServeFile string
 )
+
+// TODO: clean this up and use the structs here for the actual return data so we
+// don't have to do anything special for returning the information and manipulating it.
+// This is fine for a "quick fix" to get the templated UI working, but not great for
+// longer term maintainability.
+func buildHtmlData(pullRequests contributed.MergedPullRequestInfo) []pageData {
+
+	var pd []pageData
+
+	for owner, prInfo := range pullRequests {
+
+		data := pageData{
+			Owner:     owner,
+			AvatarURL: prInfo.AvatarURL,
+			Repos:     []Repository{},
+		}
+
+		for k, v := range prInfo.PullRequests {
+
+			r := Repository{
+				Name:         k,
+				PullRequests: []PullReq{},
+			}
+
+			for title, url := range v {
+				req := PullReq{
+					Title: title,
+					URL:   url,
+				}
+				r.PullRequests = append(r.PullRequests, req)
+			}
+
+			data.Repos = append(data.Repos, r)
+		}
+
+		pd = append(pd, data)
+
+	}
+
+	return pd
+
+}
+
+type PullReq struct {
+	Title string
+	URL   string
+}
+type Repository struct {
+	Name         string
+	PullRequests []PullReq
+}
+type pageData struct {
+	Owner     string
+	AvatarURL string
+	Repos     []Repository
+}
 
 func main() {
 	flag.IntVar(&cacheSize, "cache-size", 1000, "number of items available to cache")
+	flag.StringVar(&addr, "address", "localhost", "address to bind")
 	flag.StringVar(&port, "port", "6000", "port to bind")
+	flag.StringVar(&uiServeFile, "serve-file", "templates/index.html", "path to templated HTML to serve as the frontend")
 	flag.Parse()
 
 	githubToken := os.Getenv("GH_TOKEN_CONTRIBUTED_TO")
 	if githubToken == "" {
 		fmt.Println("GH_TOKEN_CONTRIBUTED_TO environment variable must be set.")
-		return
+		os.Exit(1)
 	}
 
 	client := contributed.GetGitHubClient(context.Background(), githubToken)
@@ -47,11 +109,65 @@ func main() {
 
 	router.SetTrustedProxies(nil)
 
-	router.GET("/health", func(c *gin.Context) {
+	router.GET("/api/health", func(c *gin.Context) {
 		c.String(http.StatusOK, "OK")
 	})
 
-	router.GET("/user/:name", func(c *gin.Context) {
+	if uiServeFile != "" {
+		log.Printf("Serving templated UI from %s\n", uiServeFile)
+
+		router.LoadHTMLFiles(uiServeFile) // Load templated HTML into renderer
+		router.Static("./static", "static")
+
+		// Initial loading of the page, no value is given
+		router.GET("/", func(c *gin.Context) {
+			c.HTML(http.StatusOK, filepath.Base(uiServeFile), nil)
+		})
+
+		// Form data for the GitHub user is sent as a POST request,
+		// so it will land here and re-render the template with some special logic.
+		router.POST("/", func(c *gin.Context) {
+
+			githubUser, ok := c.GetPostForm("github_user")
+			if !ok {
+				c.String(http.StatusBadRequest, "invalid github_user provided")
+				return
+			}
+
+			if cache.Contains(githubUser) {
+				log.Printf("[UI] cache hit for %s\n", githubUser)
+
+				// We can discard the "ok" here, since we have already checked
+				// via Contains.
+				pullRequests, _ := cache.Get(githubUser)
+
+				htmlData := buildHtmlData(pullRequests)
+
+				c.HTML(http.StatusOK, filepath.Base(uiServeFile), htmlData)
+				return
+			}
+
+			queryVariables := map[string]interface{}{
+				"name":           githubv4.String(githubUser),
+				"mergedPRCursor": (*githubv4.String)(nil),
+			}
+
+			pullRequests, err := contributed.FetchMergedPullRequestsByUser(context.Background(), client, githubUser, queryVariables)
+			if err != nil {
+				// show error
+				c.HTML(http.StatusOK, filepath.Base(uiServeFile), nil)
+				return
+			}
+
+			htmlData := buildHtmlData(pullRequests)
+
+			c.HTML(http.StatusOK, filepath.Base(uiServeFile), htmlData)
+
+		})
+
+	}
+
+	router.GET("/api/user/:name", func(c *gin.Context) {
 
 		name := c.Param("name")
 		_, ok := c.Request.Header[contributed.CacheRefreshHeader]
@@ -94,5 +210,5 @@ func main() {
 		c.JSON(http.StatusOK, pullRequests)
 	})
 
-	router.Run(":" + port)
+	router.Run(fmt.Sprintf("%s:%s", addr, port))
 }
