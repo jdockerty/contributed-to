@@ -43,25 +43,24 @@ var (
 	port      string
 )
 
-// MergedPullRequestInfo contains the relevant information which is fetched from
-// the GraphQL query, this is returned to the user.
-type MergedPullRequestInfo map[string]PullRequestInfo
-
-// PullRequestInfo represents information about a pull request to a repository
-// owner mapping. This holds the avatar URL and merged pull requests together.
-type PullRequestInfo struct {
-
-	// AvatarURL is the display picture of the repository owner or organisation.
-	AvatarURL string `json:"avatarURL"`
-
-	// PullRequests is the internal representation for the map structure of a
-	// owner/organisation to multiple merged pull requests.
-	PullRequests PullRequests `json:"pullRequests"`
+// PullRequest defines a GitHub pull request.
+type PullRequest struct {
+	Title string
+	URL   string
 }
 
-// PullRequests is a custom wrapper around the structure of the response, this
-// is a mapping of the repository owner/organisation to the repositories that
-// they own, with the merged pull requests contained within the mapping.
+// Repository is a GitHub repository. For this project,
+// contributed-to is the repository.
+type Repository struct {
+	Name         string
+	PullRequests []PullRequest
+}
+
+// Contribution is a merged pull request to a specific repository, or repositories, owned
+// by a GitHub user, that the desired author has contributed to.
+//
+// When utilised with the cache of GitHub user name it is a mapping of the specified user to their
+// successful contributions to other organisation's or repository owners project's.
 //
 // For example:
 //
