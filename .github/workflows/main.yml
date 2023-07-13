@@ -31,4 +31,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ env.owner }}/contributed-to:api-${{ steps.tag.outputs.tag }}
+          tags: ${{ env.owner }}/contributed-to:${{ steps.tag.outputs.tag }}
