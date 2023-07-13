@@ -83,16 +83,23 @@ type Repository struct {
 //	    }
 //	  }
 //	}
+type Contribution struct {
+	Owner     string
+	AvatarURL string
+	Repos     []Repository
+}
 type PullRequests map[string]map[string]string
 
 // FetchMergedPullRequestsByUser will fetch the merged pull requests for a given
 // user from the GitHub API, it initially uses a nil cursor that is then populated
 // from recurring calls.
-func FetchMergedPullRequestsByUser(ctx context.Context, client *githubv4.Client, name string, variables map[string]interface{}) (map[string]PullRequestInfo, error) {
+func FetchMergedPullRequestsByUser(ctx context.Context, client *githubv4.Client, name string, variables map[string]interface{}) ([]Contribution, error) {
 
-	mergedPRInfo := make(MergedPullRequestInfo)
+	var contributions []Contribution
 
 	for {
+		contribution := Contribution{}
+
 		if err := client.Query(context.Background(), &query, variables); err != nil {
 			fmt.Println(err)
 			return nil, err
@@ -104,24 +111,20 @@ func FetchMergedPullRequestsByUser(ctx context.Context, client *githubv4.Client,
 				continue
 			}
 
-			initPRMap := make(map[string]map[string]string)
-			initMap := make(map[string]string)
-			// Initialise structure for repository owner to merged requests
-			// mapping.
-			if _, ok := mergedPRInfo[node.Repository.Owner.Login]; !ok {
-				mergedPRInfo[node.Repository.Owner.Login] = PullRequestInfo{
-					AvatarURL:    node.Repository.Owner.AvatarURL,
-					PullRequests: initPRMap,
-				}
-			}
+			contribution.Owner = node.Repository.Owner.Login
+			contribution.AvatarURL = node.Repository.Owner.AvatarURL
 
-			pullRequests := mergedPRInfo[node.Repository.Owner.Login].PullRequests
-			if _, ok := pullRequests[node.Repository.Name]; !ok {
-				pullRequests[node.Repository.Name] = initMap
-			}
+			repo := Repository{}
+			repo.Name = node.Repository.Name
 
-			pullRequests[node.Repository.Name][node.Title] = node.Permalink
+			pr := PullRequest{}
+			pr.Title = node.Title
+			pr.URL = node.Permalink
 
+			repo.PullRequests = append(repo.PullRequests, pr)
+
+			contribution.Repos = append(contribution.Repos, repo)
+			contributions = append(contributions, contribution)
 		}
 
 		// No more pull requests available
@@ -133,7 +136,7 @@ func FetchMergedPullRequestsByUser(ctx context.Context, client *githubv4.Client,
 		variables["mergedPRCursor"] = githubv4.String(query.User.PullRequests.PageInfo.EndCursor)
 	}
 
-	return mergedPRInfo, nil
+	return contributions, nil
 }
 
 // GetGitHubClient wraps the creation of a GitHub GraphQL client.
