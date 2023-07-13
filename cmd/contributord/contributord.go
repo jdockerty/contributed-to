@@ -27,56 +27,48 @@ var (
 // don't have to do anything special for returning the information and manipulating it.
 // This is fine for a "quick fix" to get the templated UI working, but not great for
 // longer term maintainability.
-func buildHtmlData(pullRequests contributed.MergedPullRequestInfo) []pageData {
+//func buildHtmlData(pullRequests contributed.MergedPullRequestInfo) []pageData {
+//
+//	var pd []pageData
+//
+//	for owner, prInfo := range pullRequests {
+//
+//		data := pageData{
+//			Owner:     owner,
+//			AvatarURL: prInfo.AvatarURL,
+//			Repos:     []Repository{},
+//		}
+//
+//		for k, v := range prInfo.PullRequests {
+//
+//			r := Repository{
+//				Name:         k,
+//				PullRequests: []PullReq{},
+//			}
+//
+//			for title, url := range v {
+//				req := PullReq{
+//					Title: title,
+//					URL:   url,
+//				}
+//				r.PullRequests = append(r.PullRequests, req)
+//			}
+//
+//			data.Repos = append(data.Repos, r)
+//		}
+//
+//		pd = append(pd, data)
+//
+//	}
+//
+//	return pd
+//
+//}
 
-	var pd []pageData
-
-	for owner, prInfo := range pullRequests {
-
-		data := pageData{
-			Owner:     owner,
-			AvatarURL: prInfo.AvatarURL,
-			Repos:     []Repository{},
-		}
-
-		for k, v := range prInfo.PullRequests {
-
-			r := Repository{
-				Name:         k,
-				PullRequests: []PullReq{},
-			}
-
-			for title, url := range v {
-				req := PullReq{
-					Title: title,
-					URL:   url,
-				}
-				r.PullRequests = append(r.PullRequests, req)
-			}
-
-			data.Repos = append(data.Repos, r)
-		}
-
-		pd = append(pd, data)
-
+func printContributions(co []contributed.Contribution) {
+	for _, c := range co {
+		log.Printf("%+v\n", c)
 	}
-
-	return pd
-
-}
-
-type PullReq struct {
-	Title string
-	URL   string
-}
-type Repository struct {
-	Name         string
-	PullRequests []PullReq
-}
-type pageData struct {
-	Owner     string
-	AvatarURL string
-	Repos     []Repository
 }
 
 func main() {
@@ -98,7 +90,7 @@ func main() {
 	// each process or container. If there is a requirement later on, we can
 	// likely move to Redis in order to have a shared cache between multiple
 	// instances of the application.
-	cache, err := lru.New[string, contributed.MergedPullRequestInfo](cacheSize)
+	cache, err := lru.New[string, []contributed.Contribution](cacheSize)
 	if err != nil {
 		fmt.Printf("unable to create cache: %s\n", err)
 		return
@@ -139,11 +131,12 @@ func main() {
 
 				// We can discard the "ok" here, since we have already checked
 				// via Contains.
-				pullRequests, _ := cache.Get(githubUser)
+				contributions, _ := cache.Get(githubUser)
+				printContributions(contributions)
 
-				htmlData := buildHtmlData(pullRequests)
+				// htmlData := buildHtmlData(pullRequests)
 
-				c.HTML(http.StatusOK, filepath.Base(uiServeFile), htmlData)
+				c.HTML(http.StatusOK, filepath.Base(uiServeFile), contributions)
 				return
 			}
 
@@ -152,16 +145,17 @@ func main() {
 				"mergedPRCursor": (*githubv4.String)(nil),
 			}
 
-			pullRequests, err := contributed.FetchMergedPullRequestsByUser(context.Background(), client, githubUser, queryVariables)
+			contributions, err := contributed.FetchMergedPullRequestsByUser(context.Background(), client, githubUser, queryVariables)
 			if err != nil {
 				// show error
 				c.HTML(http.StatusOK, filepath.Base(uiServeFile), nil)
 				return
 			}
 
-			htmlData := buildHtmlData(pullRequests)
+			printContributions(contributions)
+			// htmlData := buildHtmlData(pullRequests)
 
-			c.HTML(http.StatusOK, filepath.Base(uiServeFile), htmlData)
+			c.HTML(http.StatusOK, filepath.Base(uiServeFile), contributions)
 
 		})
 
