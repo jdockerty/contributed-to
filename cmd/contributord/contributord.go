@@ -85,34 +85,10 @@ func main() {
 				return
 			}
 
-			if cache.Contains(githubUser) {
-				log.Printf("[UI] cache hit for %s\n", githubUser)
-
-				// We can discard the "ok" here, since we have already checked
-				// via Contains.
-				contributions, _ := cache.Get(githubUser)
-				printContributions(contributions)
-
-				// htmlData := buildHtmlData(pullRequests)
-
-				c.HTML(http.StatusOK, filepath.Base(uiServeFile), contributions)
-				return
-			}
-
-			queryVariables := map[string]interface{}{
-				"name":           githubv4.String(githubUser),
-				"mergedPRCursor": (*githubv4.String)(nil),
-			}
-
-			contributions, err := contributed.FetchMergedPullRequestsByUser(context.Background(), client, githubUser, queryVariables)
+			contributions, err := getContributions(githubUser, client, cache)
 			if err != nil {
-				// show error
 				c.HTML(http.StatusOK, filepath.Base(uiServeFile), nil)
-				return
 			}
-
-			printContributions(contributions)
-			// htmlData := buildHtmlData(pullRequests)
 
 			c.HTML(http.StatusOK, filepath.Base(uiServeFile), contributions)
 
@@ -122,46 +98,50 @@ func main() {
 
 	router.GET("/api/user/:name", func(c *gin.Context) {
 
-		name := c.Param("name")
+		githubUser := c.Param("name")
 		_, ok := c.Request.Header[contributed.CacheRefreshHeader]
 		if ok {
-			cache.Remove(name)
-			log.Printf("%s invalidated from cache", name)
+			cache.Remove(githubUser)
+			log.Printf("%s invalidated from cache", githubUser)
 		}
 
-		// Some requests can take a long time. Using an LRU cache here means
-		// that the first time a request comes in, it may take awhile to sift
-		// through all of their merged PRs, but subsequent requests are returned
-		// multiple magnitudes faster.
-		if cache.Contains(name) {
-			log.Printf("cache hit for %s\n", name)
-
-			// We can discard the "ok" here, since we have already checked
-			// via Contains.
-			data, _ := cache.Get(name)
-			c.JSON(http.StatusOK, data)
-			return
-		}
-
-		queryVariables := map[string]interface{}{
-			"name":           githubv4.String(name),
-			"mergedPRCursor": (*githubv4.String)(nil),
-		}
-
-		pullRequests, err := contributed.FetchMergedPullRequestsByUser(context.Background(), client, name, queryVariables)
+		contributions, err := getContributions(githubUser,client,  cache)
 		if err != nil {
-			msg := fmt.Sprintf("unable to fetch data for %s", name)
+			msg := fmt.Sprintf("unable to fetch data for %s", githubUser)
 			c.JSON(500, gin.H{
 				"message": msg,
 			})
 			return
 		}
 
-		cache.Add(name, pullRequests)
-		log.Printf("%s added to cache for future requests", name)
+		cache.Add(githubUser, contributions)
+		log.Printf("%s added to cache for future requests", githubUser)
 
-		c.JSON(http.StatusOK, pullRequests)
+		c.JSON(http.StatusOK, contributions)
 	})
 
 	router.Run(fmt.Sprintf("%s:%s", addr, port))
+}
+
+func getContributions(githubUser string, client *githubv4.Client, cache *lru.Cache[string, []contributed.Contribution]) ([]contributed.Contribution, error) {
+
+	if cache.Contains(githubUser) {
+		// We can discard the "ok" here, since we have already checked
+		// via Contains.
+		contributions, _ := cache.Get(githubUser)
+
+		return contributions, nil
+	}
+
+	queryVariables := map[string]interface{}{
+		"name":           githubv4.String(githubUser),
+		"mergedPRCursor": (*githubv4.String)(nil),
+	}
+
+	contributions, err := contributed.FetchMergedPullRequestsByUser(context.Background(), client, githubUser, queryVariables)
+	if err != nil {
+		return nil, err
+	}
+
+	return contributions, nil
 }
