@@ -88,7 +88,6 @@ type Contribution struct {
 	AvatarURL string
 	Repos     []Repository
 }
-type PullRequests map[string]map[string]string
 
 // FetchMergedPullRequestsByUser will fetch the merged pull requests for a given
 // user from the GitHub API, it initially uses a nil cursor that is then populated
