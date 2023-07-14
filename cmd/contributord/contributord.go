@@ -23,53 +23,12 @@ var (
 	uiServeFile string
 )
 
-// TODO: clean this up and use the structs here for the actual return data so we
-// don't have to do anything special for returning the information and manipulating it.
-// This is fine for a "quick fix" to get the templated UI working, but not great for
-// longer term maintainability.
-//func buildHtmlData(pullRequests contributed.MergedPullRequestInfo) []pageData {
-//
-//	var pd []pageData
-//
-//	for owner, prInfo := range pullRequests {
-//
-//		data := pageData{
-//			Owner:     owner,
-//			AvatarURL: prInfo.AvatarURL,
-//			Repos:     []Repository{},
-//		}
-//
-//		for k, v := range prInfo.PullRequests {
-//
-//			r := Repository{
-//				Name:         k,
-//				PullRequests: []PullReq{},
-//			}
-//
-//			for title, url := range v {
-//				req := PullReq{
-//					Title: title,
-//					URL:   url,
-//				}
-//				r.PullRequests = append(r.PullRequests, req)
-//			}
-//
-//			data.Repos = append(data.Repos, r)
-//		}
-//
-//		pd = append(pd, data)
-//
-//	}
-//
-//	return pd
-//
-//}
-
 func printContributions(co []contributed.Contribution) {
 	for _, c := range co {
-		log.Printf("%+v\n", c)
+		log.Printf("%+v\n", c.Owner)
 	}
 }
+
 
 func main() {
 	flag.IntVar(&cacheSize, "cache-size", 1000, "number of items available to cache")
