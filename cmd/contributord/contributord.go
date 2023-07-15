@@ -105,7 +105,7 @@ func main() {
 			log.Printf("%s invalidated from cache", githubUser)
 		}
 
-		contributions, err := getContributions(githubUser,client,  cache)
+		contributions, err := getContributions(githubUser, client, cache)
 		if err != nil {
 			msg := fmt.Sprintf("unable to fetch data for %s", githubUser)
 			c.JSON(500, gin.H{
