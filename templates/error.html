@@ -43,48 +43,13 @@
       <div class="github">
           <ul class="drac-list drac-list-purple">
 
-              {{ range . }}
 
               <div class="contribution">
-
-              <div class="repoOwner">
-              <li class="drac-text drac-text-white">
-                  <div class="repoAvatar">
-                  <span class="drac-avatar">
-                      <span class="drac-avatar-background"
-                          style="background-image: url({{ .AvatarURL }});">
-                      </span>
-                  </span>
-                  </div>
-                  {{ .Owner }}
-              </li>
-              </div>
-
-              <li class="drac-text drac-text-white">
-                  <div class="repos">
-                  <ul class="drac-list drac-list-purple">
-                      {{ range .Repos }}
-
-                      <li class="drac-text drac-text-white"> {{ .Name }} </li>
+                  <div class="repoOwner">
                       <li class="drac-text drac-text-white">
-                          <ul class="drac-list drac-list-purple">
-                                  {{ range .PullRequests }}
-                                  <li class="drac-text drac-text-white pullRequests">
-                                      <a href="{{ .URL }}"> {{ .Title }} </a>
-                                  </li>
-                                  {{ end }}
-                          </ul>
-
+                          {{ .Error }}
                       </li>
-
-                      {{ end }}
-
-                  </ul>
                   </div>
-              </li>
-
-              {{end}}
-
               </div>
           </ul>
       </div>
@@ -95,8 +60,6 @@
           Star on GitHub!
       </a>
   </div>
-
-  </body>
   </div>
 </body>
 </html>
