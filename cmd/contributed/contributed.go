@@ -47,10 +47,6 @@ func getUser(user string, refreshCache bool) ([]contributed.Contribution, error)
 
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusAccepted {
-		return contributions, nil
-	}
-
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
