@@ -24,7 +24,7 @@ var (
 	refreshCache bool
 )
 
-func getUser(user string, refreshCache bool) (contributed.MergedPullRequestInfo, error) {
+func getUser(user string, refreshCache bool) ([]contributed.Contribution, error) {
 
 	c := &http.Client{}
 
@@ -38,6 +38,8 @@ func getUser(user string, refreshCache bool) (contributed.MergedPullRequestInfo,
 		req.Header.Add(contributed.CacheRefreshHeader, "true")
 	}
 
+	var contributions []contributed.Contribution
+
 	resp, err := c.Do(req)
 	if err != nil {
 		return nil, err
@@ -45,18 +47,21 @@ func getUser(user string, refreshCache bool) (contributed.MergedPullRequestInfo,
 
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusAccepted {
+		return contributions, nil
+	}
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	v := make(contributed.MergedPullRequestInfo)
-	err = json.Unmarshal(body, &v)
+	err = json.Unmarshal(body, &contributions)
 	if err != nil {
 		return nil, err
 	}
 
-	return v, nil
+	return contributions, nil
 }
 
 func main() {
@@ -72,28 +77,31 @@ func main() {
 	users := flag.CommandLine.Args()
 
 	for _, user := range users {
-		info, err := getUser(user, refreshCache)
+		contributions, err := getUser(user, refreshCache)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 
-		fmt.Printf("%s has contributed to:\n\n", user)
-		for repoOwner, pullRequestInfo := range info {
-			fmt.Printf("%s\n", repoOwner)
+		if len(contributions) == 0 {
+			fmt.Printf("%s has no contributions.\n", user)
+			return
+		}
 
-			for repo, prs := range pullRequestInfo.PullRequests {
-				fmt.Printf("\t%s\n", repo)
+		fmt.Printf("%s:\n\n", user)
+
+		for _, c := range contributions {
+			fmt.Printf("\t%+v\n", c.Owner)
+
+			for _, x := range c.Repos {
+				fmt.Printf("\t\t%s\n", x.Name)
 
 				if fullInfo {
-					for title, url := range prs {
-						fmt.Printf("\t\t%s %s\n", title, url)
+					for _, y := range x.PullRequests {
+						fmt.Printf("\t\t\t%s %s\n", y.Title, y.URL)
 					}
 				}
-
 			}
-
-			// Blank line after each new entry
 			fmt.Println()
 		}
 	}
