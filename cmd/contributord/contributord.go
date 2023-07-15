@@ -23,12 +23,6 @@ var (
 	uiServeFile string
 )
 
-func printContributions(co []contributed.Contribution) {
-	for _, c := range co {
-		log.Printf("%+v\n", c.Owner)
-	}
-}
-
 
 func main() {
 	flag.IntVar(&cacheSize, "cache-size", 1000, "number of items available to cache")
