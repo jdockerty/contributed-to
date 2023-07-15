@@ -16,18 +16,18 @@ import (
 )
 
 var (
-	cacheSize   int
-	port        string
-	addr        string
-	ui          bool
-	uiServeFile string
+	cacheSize  int
+	port       string
+	addr       string
+	ui         bool
+	uiServeDir string
 )
 
 func main() {
 	flag.IntVar(&cacheSize, "cache-size", 1000, "number of items available to cache")
 	flag.StringVar(&addr, "address", "localhost", "address to bind")
 	flag.StringVar(&port, "port", "6000", "port to bind")
-	flag.StringVar(&uiServeFile, "serve-file", "templates/index.html", "path to templated HTML to serve as the frontend")
+	flag.StringVar(&uiServeDir, "serve-dir", "templates/*", "path to templated HTML to serve as the frontend")
 	flag.Parse()
 
 	githubToken := os.Getenv("GH_TOKEN_CONTRIBUTED_TO")
@@ -57,15 +57,16 @@ func main() {
 		c.String(http.StatusOK, "OK")
 	})
 
-	if uiServeFile != "" {
-		log.Printf("Serving templated UI from %s\n", uiServeFile)
+	if uiServeDir != "" {
+		log.Printf("Serving templated UI from %s\n", uiServeDir)
 
-		router.LoadHTMLFiles(uiServeFile) // Load templated HTML into renderer
+		router.LoadHTMLGlob(uiServeDir) // Load templated HTML into renderer
 		router.Static("./static", "static")
 
 		// Initial loading of the page, no value is given
 		router.GET("/", func(c *gin.Context) {
-			c.HTML(http.StatusOK, filepath.Base(uiServeFile), nil)
+			c.HTML(http.StatusOK, "index.html", nil)
+			return
 		})
 
 		// Form data for the GitHub user is sent as a POST request,
@@ -80,10 +81,18 @@ func main() {
 
 			contributions, err := getContributions(githubUser, client, cache)
 			if err != nil {
-				c.HTML(http.StatusOK, filepath.Base(uiServeFile), nil)
+
+				errorData := struct {
+					Error string
+				}{
+					Error: fmt.Sprintf("Unable to retrieve contributions for %s", githubUser),
+				}
+				c.HTML(http.StatusOK, filepath.Base("error.html"), errorData)
+				return
 			}
 
-			c.HTML(http.StatusOK, filepath.Base(uiServeFile), contributions)
+			c.HTML(http.StatusOK, "index.html", contributions)
+			return
 
 		})
 
