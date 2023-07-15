@@ -23,7 +23,6 @@ var (
 	uiServeFile string
 )
 
-
 func main() {
 	flag.IntVar(&cacheSize, "cache-size", 1000, "number of items available to cache")
 	flag.StringVar(&addr, "address", "localhost", "address to bind")

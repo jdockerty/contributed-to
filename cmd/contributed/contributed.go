@@ -89,12 +89,12 @@ func main() {
 		for _, c := range contributions {
 			fmt.Printf("\t%+v\n", c.Owner)
 
-			for _, x := range c.Repos {
-				fmt.Printf("\t\t%s\n", x.Name)
+			for _, r := range c.Repos {
+				fmt.Printf("\t\t%s\n", r.Name)
 
 				if fullInfo {
-					for _, y := range x.PullRequests {
-						fmt.Printf("\t\t\t%s %s\n", y.Title, y.URL)
+					for _, pr := range r.PullRequests {
+						fmt.Printf("\t\t\t%s %s\n", pr.Title, pr.URL)
 					}
 				}
 			}
