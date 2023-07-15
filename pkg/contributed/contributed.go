@@ -49,7 +49,7 @@ type PullRequest struct {
 	URL   string
 }
 
-// Repository is a GitHub repository. For this project,
+// Repository is a GitHub repository. As an example for this project,
 // contributed-to is the repository.
 type Repository struct {
 	Name         string
@@ -96,8 +96,10 @@ func FetchMergedPullRequestsByUser(ctx context.Context, client *githubv4.Client,
 
 	var contributions []Contribution
 
+	indexMapping := make(map[string]int)
+	contributionIndex := 0
+
 	for {
-		contribution := Contribution{}
 
 		if err := client.Query(context.Background(), &query, variables); err != nil {
 			fmt.Println(err)
@@ -110,20 +112,75 @@ func FetchMergedPullRequestsByUser(ctx context.Context, client *githubv4.Client,
 				continue
 			}
 
-			contribution.Owner = node.Repository.Owner.Login
-			contribution.AvatarURL = node.Repository.Owner.AvatarURL
+			// This contribution does not exist yet, so we can
+			// initialise it.
+			if index, ok := indexMapping[node.Repository.Owner.Login]; !ok {
+				contribution := Contribution{
+					Owner:     node.Repository.Owner.Login,
+					AvatarURL: node.Repository.Owner.AvatarURL,
+				}
 
-			repo := Repository{}
-			repo.Name = node.Repository.Name
+				repo := Repository{
+					Name: node.Repository.Name,
+				}
 
-			pr := PullRequest{}
-			pr.Title = node.Title
-			pr.URL = node.Permalink
+				pr := PullRequest{
+					Title: node.Title,
+					URL:   node.Permalink,
+				}
 
-			repo.PullRequests = append(repo.PullRequests, pr)
+				repo.PullRequests = append(repo.PullRequests, pr)
 
-			contribution.Repos = append(contribution.Repos, repo)
-			contributions = append(contributions, contribution)
+				contribution.Repos = append(contribution.Repos, repo)
+				contributions = append(contributions, contribution)
+
+				indexMapping[contribution.Owner] = contributionIndex
+				contributionIndex += 1
+
+			} else {
+				con := contributions[index]
+
+				// We need to find whether the current repository exists.
+				// If it does, we do not want to duplicates its record,
+				// and must instead append a pull request to it.
+				repoIndex := func(repos []Repository, target string) int {
+					for i, r := range repos {
+						if r.Name == target {
+							return i
+						}
+					}
+
+					return -1
+				}(con.Repos, node.Repository.Name)
+
+				// If the current repo does not exist
+				if repoIndex == -1 {
+					repo := Repository{
+						Name: node.Repository.Name,
+					}
+
+					pr := PullRequest{
+						Title: node.Title,
+						URL:   node.Permalink,
+					}
+
+					repo.PullRequests = append(repo.PullRequests, pr)
+
+					con.Repos = append(con.Repos, repo)
+					contributions[index] = con
+				} else {
+					repo := con.Repos[repoIndex]
+
+					pr := PullRequest{
+						Title: node.Title,
+						URL:   node.Permalink,
+					}
+
+					repo.PullRequests = append(repo.PullRequests, pr)
+					con.Repos[repoIndex] = repo
+					contributions[index] = con
+				}
+			}
 		}
 
 		// No more pull requests available
