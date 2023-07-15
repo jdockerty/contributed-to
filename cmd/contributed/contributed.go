@@ -47,6 +47,10 @@ func getUser(user string, refreshCache bool) ([]contributed.Contribution, error)
 
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusInternalServerError {
+		return nil, fmt.Errorf("unable to load contributions for %s\n", user)
+	}
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
