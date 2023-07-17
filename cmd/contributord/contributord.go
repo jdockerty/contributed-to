@@ -16,11 +16,12 @@ import (
 )
 
 var (
-	cacheSize  int
-	port       string
-	addr       string
-	ui         bool
-	uiServeDir string
+	cacheSize      int
+	port           string
+	addr           string
+	ui             bool
+	uiServeDir     string
+	staticServeDir string
 )
 
 func main() {
@@ -28,6 +29,7 @@ func main() {
 	flag.StringVar(&addr, "address", "localhost", "address to bind")
 	flag.StringVar(&port, "port", "6000", "port to bind")
 	flag.StringVar(&uiServeDir, "serve-dir", "templates/*", "path to templated HTML to serve as the frontend")
+	flag.StringVar(&staticServeDir, "static-assets-dir", "static", "path where static assets are served from for the frontend")
 	flag.Parse()
 
 	githubToken := os.Getenv("GH_TOKEN_CONTRIBUTED_TO")
@@ -59,9 +61,10 @@ func main() {
 
 	if uiServeDir != "" {
 		log.Printf("Serving templated UI from %s\n", uiServeDir)
+		log.Printf("Serving static assets from %s\n", staticServeDir)
 
 		router.LoadHTMLGlob(uiServeDir) // Load templated HTML into renderer
-		router.Static("./static", "static")
+		router.Static("/static", staticServeDir)
 
 		// Initial loading of the page, no value is given
 		router.GET("/", func(c *gin.Context) {
