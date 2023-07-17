@@ -14,10 +14,12 @@ FROM gcr.io/distroless/base-debian11
 
 WORKDIR /
 
-COPY --from=build /app/contributord /contributord
+COPY --from=build /app/contributord /app/contributord
+COPY --from=build /app/static /app/static
+COPY --from=build /app/templates /app/templates
 
 EXPOSE 6000
 
 USER nonroot:nonroot
 
-ENTRYPOINT ["/contributord"]
+ENTRYPOINT ["/app/contributord"]
