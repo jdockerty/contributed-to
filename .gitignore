@@ -26,3 +26,14 @@ go.work
 
 # End of https://www.toptal.com/developers/gitignore/api/go
 n
+
+# Added by cargo
+
+/target
+
+
+# Added by cargo
+#
+# already existing elements were commented out
+
+#/target

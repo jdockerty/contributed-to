@@ -1,0 +1,22 @@
+query Contributions($login: String!, $cursor: String) {
+  user(login: $login) {
+    pullRequests(first: 5, after: $cursor, states: MERGED) {
+      nodes {
+        title
+        permalink
+        repository {
+          name
+          owner {
+            __typename
+            login
+            avatarUrl
+          }
+        }
+      }
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
+    }
+  }
+}
