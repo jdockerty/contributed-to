@@ -1,6 +1,6 @@
-query Contributions($login: String!) {
+query Contributions($login: String!, $cursor: String) {
   user(login: $login) {
-    pullRequests(first: 5, states: MERGED) {
+    pullRequests(first: 5, after: $cursor, states: MERGED) {
       nodes {
         title
         permalink
