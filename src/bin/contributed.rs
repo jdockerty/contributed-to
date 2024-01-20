@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand};
 use clap_verbosity_flag::Verbosity;
 use contributed::server;
+use tracing_log::AsTrace;
 
 #[derive(Debug, Clone, Parser)]
 #[command(author, version, about, long_about = None)]
@@ -33,9 +34,13 @@ enum Command {
 async fn main() -> anyhow::Result<()> {
     let app = App::parse();
 
+    tracing_subscriber::fmt::fmt()
+        .with_max_level(app.verbose.log_level_filter().as_trace())
+        .init();
+
     match app.command {
         Some(Command::Server { address, port }) => {
-            server::serve(address, port, app.verbose.log_level_filter()).await?;
+            server::serve(address, port).await?;
         }
         None => {
             for user in app.users.iter() {
