@@ -1,4 +1,6 @@
 use clap::{Parser, Subcommand};
+use clap_verbosity_flag::Verbosity;
+use contributed::server;
 
 #[derive(Debug, Clone, Parser)]
 #[command(author, version, about, long_about = None)]
@@ -8,28 +10,32 @@ struct App {
 
     #[command(subcommand)]
     command: Option<Command>,
+
+    #[command(flatten)]
+    verbose: Verbosity<clap_verbosity_flag::InfoLevel>,
 }
 
 #[derive(Debug, Clone, Subcommand)]
 enum Command {
     /// Run the contributed server.
     Server {
-        /// The port to run the server on.
-        #[arg(long, default_value = "8080")]
-        port: u16,
-
         /// The address to run the server on.
         #[arg(long, default_value = "localhost")]
         address: String,
+
+        /// The port to run the server on.
+        #[arg(long, default_value = "8080")]
+        port: u16,
     },
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let app = App::parse();
 
     match app.command {
-        Some(Command::Server { port, address }) => {
-            println!("Running server on {}:{}", address, port);
+        Some(Command::Server { address, port }) => {
+            server::serve(address, port, app.verbose.log_level_filter()).await;
         }
         None => {
             for user in app.users.iter() {
