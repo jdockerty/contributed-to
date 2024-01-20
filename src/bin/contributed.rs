@@ -30,12 +30,12 @@ enum Command {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     let app = App::parse();
 
     match app.command {
         Some(Command::Server { address, port }) => {
-            server::serve(address, port, app.verbose.log_level_filter()).await;
+            server::serve(address, port, app.verbose.log_level_filter()).await?;
         }
         None => {
             for user in app.users.iter() {
@@ -43,4 +43,5 @@ async fn main() {
             }
         }
     }
+    Ok(())
 }
