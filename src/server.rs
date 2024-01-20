@@ -42,5 +42,25 @@ async fn contributions(State(state): State<AppState>, params: extract::Path<Stri
         cursor: None,
     };
 
+    loop {
+        let response = Contributions::build_query(variables.clone());
+        let response: octocrab::Result<graphql_client::Response<contributions::ResponseData>> =
+            client.graphql(&response).await;
+        match response {
+            Ok(response) => {
+                //let response = response.data.expect("missing response data");
+                //let contributions = response.user.contributions_collection.contribution_calendar
+                //    .contributions;
+                //if contributions.is_empty() {
+                //    break contributions;
+                //}
+                //variables.cursor = Some(contributions.last().unwrap().as_ref().unwrap().cursor.clone());
+                //debug!("Fetched {} contributions", contributions.len());
+            }
+            Err(err) => {
+                format!("Failed to fetch contributions for {}: {}", user, err);
+            }
+        }
+    }
     format!("Hello, {}!", user)
 }
