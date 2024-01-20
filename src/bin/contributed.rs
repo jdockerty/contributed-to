@@ -1,7 +1,11 @@
 use clap::{Parser, Subcommand};
 use clap_verbosity_flag::Verbosity;
 use contributed::server;
+use contributed::{AppState, ServerConfig};
+use tracing::debug;
 use tracing_log::AsTrace;
+
+const GITHUB_TOKEN_ENV: &str = "CONTRIBUTED_GITHUB_TOKEN";
 
 #[derive(Debug, Clone, Parser)]
 #[command(author, version, about, long_about = None)]
@@ -40,7 +44,26 @@ async fn main() -> anyhow::Result<()> {
 
     match app.command {
         Some(Command::Server { address, port }) => {
-            server::serve(address, port).await?;
+            debug!("Reading {} from environment", GITHUB_TOKEN_ENV);
+            let github_token = match std::env::var(GITHUB_TOKEN_ENV) {
+                Ok(token) => token,
+                Err(_) => {
+                    anyhow::bail!(
+                        "Please set the {} environment variable to a valid GitHub token",
+                        GITHUB_TOKEN_ENV
+                    );
+                }
+            };
+            let config = ServerConfig {
+                address: address.clone(),
+                port,
+                state: AppState {
+                    github_client: octocrab::Octocrab::builder()
+                        .personal_token(github_token)
+                        .build()?,
+                },
+            };
+            server::serve(config).await?;
         }
         None => {
             for user in app.users.iter() {

@@ -1,14 +1,12 @@
+use crate::{AppState, ServerConfig};
 use axum::extract;
+use axum::extract::State;
 use axum::{routing::get, Router};
-use clap_verbosity_flag::LevelFilter;
 use graphql_client::GraphQLQuery;
 use tracing::{debug, info, instrument};
 
 #[allow(clippy::upper_case_acronyms)]
 type URI = String;
-
-const GITHUB_API: &str = "https://api.github.com/graphql";
-const GITHUB_TOKEN_ENV: &str = "CONTRIBUTED_GITHUB_TOKEN";
 
 #[derive(GraphQLQuery)]
 #[graphql(
@@ -20,19 +18,12 @@ const GITHUB_TOKEN_ENV: &str = "CONTRIBUTED_GITHUB_TOKEN";
 struct Contributions;
 
 #[instrument]
-pub async fn serve(address: String, port: u16) -> anyhow::Result<()> {
-    debug!("Reading {} from environment", GITHUB_TOKEN_ENV);
-    let github_token = match std::env::var(GITHUB_TOKEN_ENV) {
-        Ok(token) => token,
-        Err(_) => {
-            anyhow::bail!(
-                "Please set the {} environment variable to a valid GitHub token",
-                GITHUB_TOKEN_ENV
-            );
-        }
-    };
-
-    let app = Router::new().route("/api/user/:name", get(contributions));
+pub async fn serve(config: ServerConfig) -> anyhow::Result<()> {
+    let address = config.address;
+    let port = config.port;
+    let app = Router::new()
+        .route("/api/user/:name", get(contributions))
+        .with_state(config.state);
 
     let bind_addr = format!("{}:{}", address, port);
     let listener = tokio::net::TcpListener::bind(bind_addr).await?;
@@ -42,7 +33,14 @@ pub async fn serve(address: String, port: u16) -> anyhow::Result<()> {
 }
 
 #[instrument]
-async fn contributions(params: extract::Path<String>) -> String {
-    let name = params.0;
-    format!("Hello, {}!", name)
+async fn contributions(State(state): State<AppState>, params: extract::Path<String>) -> String {
+    let user = params.0;
+    info!("Fetching contributions for {}", user);
+    let client = state.github_client;
+    let mut variables = contributions::Variables {
+        login: user.clone(),
+        cursor: None,
+    };
+
+    format!("Hello, {}!", user)
 }
